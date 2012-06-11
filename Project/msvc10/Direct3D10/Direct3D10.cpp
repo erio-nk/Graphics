@@ -1,8 +1,8 @@
-// Graphics.cpp : アプリケーションのエントリ ポイントを定義します。
+// Direct3D10.cpp : アプリケーションのエントリ ポイントを定義します。
 //
 
 #include "stdafx.h"
-#include "Graphics.h"
+#include "Direct3D10.h"
 
 #define MAX_LOADSTRING 100
 
@@ -31,7 +31,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	// グローバル文字列を初期化しています。
 	LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-	LoadString(hInstance, IDC_GRAPHICS, szWindowClass, MAX_LOADSTRING);
+	LoadString(hInstance, IDC_DIRECT3D10, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
 	// アプリケーションの初期化を実行します:
@@ -40,7 +40,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		return FALSE;
 	}
 
-	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_GRAPHICS));
+	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DIRECT3D10));
 
 	// メイン メッセージ ループ:
 	while (GetMessage(&msg, NULL, 0, 0))
@@ -81,10 +81,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	wcex.cbClsExtra		= 0;
 	wcex.cbWndExtra		= 0;
 	wcex.hInstance		= hInstance;
-	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_GRAPHICS));
+	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_DIRECT3D10));
 	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
 	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
-	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_GRAPHICS);
+	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_DIRECT3D10);
 	wcex.lpszClassName	= szWindowClass;
 	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
