@@ -17,5 +17,10 @@
 #include <memory.h>
 #include <tchar.h>
 
+#include <memory>
+
 
 // TODO: プログラムに必要な追加ヘッダーをここで参照してください。
+#include "Misc/DebugTrace.h"
+
+#include "Application.h"

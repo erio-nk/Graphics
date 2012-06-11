@@ -11,6 +11,8 @@ HINSTANCE hInst;								// 現在のインターフェイス
 TCHAR szTitle[MAX_LOADSTRING];					// タイトル バーのテキスト
 TCHAR szWindowClass[MAX_LOADSTRING];			// メイン ウィンドウ クラス名
 
+Application g_app;
+
 // このコード モジュールに含まれる関数の宣言を転送します:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
 BOOL				InitInstance(HINSTANCE, int);
@@ -42,15 +44,37 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DIRECT3D10));
 
-	// メイン メッセージ ループ:
-	while (GetMessage(&msg, NULL, 0, 0))
+//	// メイン メッセージ ループ:
+//	while (GetMessage(&msg, NULL, 0, 0))
+//	{
+//		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+//		{
+//			TranslateMessage(&msg);
+//			DispatchMessage(&msg);
+//		}
+//	}
+
+	for (;;)
 	{
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+		if (PeekMessage(&msg, (HWND)NULL, 0, 0, PM_REMOVE)) 
 		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+			if (msg.message == WM_QUIT) 
+			{
+				break;
+			}
+			if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		} 
+		else 
+		{
+			g_app.Update();
 		}
 	}
+	
+	g_app.Release();
 
 	return (int) msg.wParam;
 }
@@ -117,6 +141,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
+   
+   if (g_app.Create(hWnd) == FALSE)
+   {
+   	   return FALSE;
+   }
 
    return TRUE;
 }
