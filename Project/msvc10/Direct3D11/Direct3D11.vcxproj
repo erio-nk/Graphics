@@ -162,8 +162,9 @@
     <None Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Misc\DebugTrace.h" />
-    <ClInclude Include="..\..\..\Misc\FrameRateController.h" />
+    <ClInclude Include="..\..\..\Library\Misc.h" />
+    <ClInclude Include="..\..\..\Library\Misc\DebugTrace.h" />
+    <ClInclude Include="..\..\..\Library\Misc\FrameRateController.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="Direct3D11.h" />
     <ClInclude Include="Resource.h" />
@@ -171,8 +172,8 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Misc\DebugTrace.cpp" />
-    <ClCompile Include="..\..\..\Misc\FrameRateController.cpp" />
+    <ClCompile Include="..\..\..\Library\Misc\DebugTrace.cpp" />
+    <ClCompile Include="..\..\..\Library\Misc\FrameRateController.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Direct3D11.cpp" />
     <ClCompile Include="stdafx.cpp">

@@ -1,4 +1,10 @@
+/*!
+	@file	FrameRateController.h
+	@author	E.Nakayama
+*/
 #pragma once
+	
+#include <memory>
 	
 /*!
 	@brief	フレームレート制御クラス。

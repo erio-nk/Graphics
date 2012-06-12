@@ -17,10 +17,12 @@
 #include <memory.h>
 #include <tchar.h>
 
-#include <memory>
+// Direct3D11
+#include <d3dx11.h>
+#include <dxerr.h>
 
+// Library
+#include "Misc.h"
 
-// TODO: プログラムに必要な追加ヘッダーをここで参照してください。
-#include "Misc/DebugTrace.h"
-
+// Application
 #include "Application.h"

@@ -1,8 +1,10 @@
+/*!
+	@file	FrameRateController.cpp
+	@author	E.Nakayama
+*/
 #include <boost/timer/timer.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/noncopyable.hpp>
-
-#include <Windows.h>
 
 #include "DebugTrace.h"
 
