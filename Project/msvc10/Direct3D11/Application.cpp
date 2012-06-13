@@ -1,4 +1,27 @@
 #include "Application.h"
+	
+#include <boost/tokenizer.hpp>
+
+namespace
+{
+	inline void ShaderCompileError(ID3D10Blob* pErrorsBlob)
+	{
+		void* pError = pErrorsBlob->GetBufferPointer();
+
+		typedef boost::char_separator<char> ErrorMessageSeparator;
+		typedef boost::tokenizer<ErrorMessageSeparator> ErrorMessages;
+
+		ErrorMessageSeparator sep("\n");
+		std::string allMessages(reinterpret_cast<char*>(pError)); 
+		ErrorMessages messages(allMessages, sep);
+		ErrorMessages::iterator itr = messages.begin();
+		ErrorMessages::iterator itrEnd = messages.end();
+		for (; itr != itrEnd; ++itr)
+		{
+			DebugTraceA(itr->c_str());
+		}
+	}
+}
 
 struct Application::Impl
 {
@@ -11,6 +34,9 @@ struct Application::Impl
 	ID3D11RenderTargetView* _pRenderTargetView;
 	ID3D11Texture2D* _pDepthStencilBuffer;
 	ID3D11DepthStencilView* _pDepthStencilView;
+
+	ID3D11VertexShader* _pVertexShader;
+	ID3D11PixelShader* _pPixelShader;
 
 	bool Create(HWND hWnd)
 	{
@@ -117,11 +143,79 @@ struct Application::Impl
 		vp.TopLeftY = 0;
 		_pDeviceContext->RSSetViewports(1, &vp);
 		
+		
+		// 頂点シェーダの作成。
+		ID3D10Blob* pErrorsBlob = NULL;
+		ID3D10Blob* pVertexShaderBytecode = NULL;
+		hr = D3DX11CompileFromFile(_T("simple.sh")
+			, NULL
+			, NULL
+			, "VS"
+			, "vs_4_0"
+			, D3D10_SHADER_ENABLE_STRICTNESS | D3D10_SHADER_PACK_MATRIX_COLUMN_MAJOR
+			, 0
+			, NULL
+			, &pVertexShaderBytecode
+			, &pErrorsBlob
+			, NULL
+			);
+		if (FAILED(hr))
+		{
+			ShaderCompileError(pErrorsBlob);
+			SafeRelease(pErrorsBlob);
+			return false;
+		}
+			
+		hr = _pDevice->CreateVertexShader(pVertexShaderBytecode->GetBufferPointer()
+			, pVertexShaderBytecode->GetBufferSize()
+			, NULL
+			, &_pVertexShader
+			);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+		// ピクセルシェーダの作成。
+		ID3D10Blob* pPixelShaderBytecode = NULL;
+		hr = D3DX11CompileFromFile(_T("simple.sh")
+			, NULL
+			, NULL
+			, "PS"
+			, "ps_4_0"
+			, D3D10_SHADER_ENABLE_STRICTNESS | D3D10_SHADER_PACK_MATRIX_COLUMN_MAJOR
+			, 0
+			, NULL
+			, &pPixelShaderBytecode
+			, &pErrorsBlob
+			, NULL
+			);
+		if (FAILED(hr))
+		{
+			ShaderCompileError(pErrorsBlob);
+			SafeRelease(pErrorsBlob);
+			return false;
+		}
+			
+		hr = _pDevice->CreatePixelShader(pPixelShaderBytecode->GetBufferPointer()
+			, pPixelShaderBytecode->GetBufferSize()
+			, NULL
+			, &_pPixelShader
+			);
+		if (FAILED(hr))
+		{
+			return false;
+		}
+
+		
 		return true;
 	}
 	
 	void Release()
 	{
+		SafeRelease(_pVertexShader);
+		SafeRelease(_pPixelShader);
+		
 		SafeRelease(_pDepthStencilView);
 		SafeRelease(_pDepthStencilBuffer);
 		SafeRelease(_pRenderTargetView);

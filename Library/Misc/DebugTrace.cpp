@@ -8,17 +8,33 @@
 
 #include "DebugTrace.h"	
 
-void DebugTrace(const TCHAR* format, ...)
+void DebugTraceA(const char* format, ...)
 {
-	static TCHAR buf[1024];		// TODO: Thread Local Storage
+	static char buf[1024];		// TODO: Thread Local Storage
 
 #if defined(_WIN32)
 	va_list va;
 	va_start(va, format);
-	_vstprintf_s(buf, format, va);
+	vsprintf_s(buf, format, va);
 	va_end(va);
-	OutputDebugString(buf);
-	OutputDebugString(_T("\n"));
+	OutputDebugStringA(buf);
+	OutputDebugStringA("\n");
+#else
+	#error Not implemented
+#endif
+}
+
+void DebugTraceW(const wchar_t* format, ...)
+{
+	static wchar_t buf[1024];		// TODO: Thread Local Storage
+
+#if defined(_WIN32)
+	va_list va;
+	va_start(va, format);
+	vswprintf_s(buf, format, va);
+	va_end(va);
+	OutputDebugStringW(buf);
+	OutputDebugStringW(L"\n");
 #else
 	#error Not implemented
 #endif
