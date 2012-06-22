@@ -20,6 +20,9 @@
 // Direct3D11
 #include <d3dx11.h>
 #include <dxerr.h>
+	
+// XNA Math
+#include <xnamath.h>
 
 // Library
 #include "Misc.h"
