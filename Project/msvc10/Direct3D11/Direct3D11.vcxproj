@@ -162,9 +162,11 @@
     <None Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\Library\Direct3D11\GraphicsSystem.h" />
     <ClInclude Include="..\..\..\Library\Misc.h" />
     <ClInclude Include="..\..\..\Library\Misc\DebugTrace.h" />
     <ClInclude Include="..\..\..\Library\Misc\FrameRateController.h" />
+    <ClInclude Include="..\..\..\Library\Misc\Handle.h" />
     <ClInclude Include="Application.h" />
     <ClInclude Include="Direct3D11.h" />
     <ClInclude Include="Resource.h" />
@@ -172,6 +174,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\Library\Direct3D11\GraphicsSystem.cpp" />
     <ClCompile Include="..\..\..\Library\Misc\DebugTrace.cpp" />
     <ClCompile Include="..\..\..\Library\Misc\FrameRateController.cpp" />
     <ClCompile Include="Application.cpp" />

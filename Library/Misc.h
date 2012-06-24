@@ -34,4 +34,5 @@ inline void SafeRelease(T*& p)
 
 #include "Misc/DebugTrace.h"
 #include "Misc/FrameRateController.h"
+#include "Misc/Handle.h"
 

@@ -2,7 +2,7 @@
 	
 #include <boost/tokenizer.hpp>
 
-#pragma comment( lib, "dxgi.lib" )
+//#pragma comment( lib, "dxgi.lib" )
 
 namespace
 {
