@@ -15,8 +15,8 @@ public:
 	}
 	
 	Handle(const std::shared_ptr<T> object)
+		: _ptr(object)
 	{
-		_ptr = object;
 	}
 	
 	Handle(const Handle& handle)
@@ -24,6 +24,10 @@ public:
 		_ptr = handle._ptr;
 	}
 	
+	Handle& operator = (const Handle& handle)
+	{
+		_ptr = handle._ptr;
+	}
 	
 	T* Get()
 	{
@@ -43,7 +47,7 @@ public:
 		return NULL;
 	}
 	
-private
+private:
 	std::weak_ptr<T> _ptr;
 };	// end class Handle
 	

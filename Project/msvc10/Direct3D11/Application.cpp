@@ -2,7 +2,7 @@
 	
 #include <boost/tokenizer.hpp>
 
-//#pragma comment( lib, "dxgi.lib" )
+#include "Direct3D11/GraphicsService.h"
 
 namespace
 {
@@ -29,21 +29,14 @@ namespace
 		}
 	}
 
-	inline void DebugTraceHresult(HRESULT hr)
-	{
-		DebugTrace(_T("%s : %s")
-			, DXGetErrorString(hr)
-			, DXGetErrorDescription(hr));
-	}
+
 }
 
 struct Application::Impl
 {
 	FrameRateController _frameRateController;
 	
-	IDXGISwapChain* _pSwapChain;
-	ID3D11Device* _pDevice;
-	ID3D11DeviceContext* _pDeviceContext;
+	GraphicsService _graphicsService;
 	
 	ID3D11RenderTargetView* _pRenderTargetView;
 	ID3D11Texture2D* _pDepthStencilBuffer;
@@ -65,10 +58,7 @@ struct Application::Impl
 	XMFLOAT4X4 _projection;
 	
 	Impl()
-		: _pSwapChain(NULL)
-		, _pDevice(NULL)
-		, _pDeviceContext(NULL)
-		, _pRenderTargetView(NULL)
+		: _pRenderTargetView(NULL)
 		, _pDepthStencilBuffer(NULL)
 		, _pDepthStencilView(NULL)
 		, _pVertexShader(NULL)
@@ -93,83 +83,46 @@ struct Application::Impl
 		SafeRelease(_pDepthStencilBuffer);
 		SafeRelease(_pRenderTargetView);
 
-		SafeRelease(_pSwapChain);
-		SafeRelease(_pDevice);
-		SafeRelease(_pDeviceContext);
+		_graphicsService.Release();
 	}
 
 	bool Create(HWND hWnd)
 	{
-		// デバイスとスワップチェーンの作成。
-		RECT rectClient;
-		GetClientRect(hWnd, &rectClient);
-
-		DXGI_SWAP_CHAIN_DESC sd;
-		ZeroMemory(&sd, sizeof(sd));
-		sd.BufferCount = 1;
-		sd.BufferDesc.Width = rectClient.right - rectClient.left;
-		sd.BufferDesc.Height = rectClient.bottom - rectClient.top;
-		sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		sd.BufferDesc.RefreshRate.Numerator = 60;
-		sd.BufferDesc.RefreshRate.Denominator = 1;
-		sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		sd.OutputWindow = hWnd;
-		sd.SampleDesc.Count = 1;
-		sd.SampleDesc.Quality = 0;//1;
-		sd.Windowed = TRUE;
-		sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-			
-		D3D_FEATURE_LEVEL featureLevel;
-		
-		HRESULT hr = D3D11CreateDeviceAndSwapChain(NULL	// pAdapter
-			, D3D_DRIVER_TYPE_HARDWARE	// DriverType
-			, NULL	// Software
-			, 0	// Flags
-			, NULL	// pFeatureLevels
-			, 0// FeatureLevels
-			, D3D11_SDK_VERSION
-			, &sd
-			, &_pSwapChain
-			, &_pDevice
-			, &featureLevel
-			, &_pDeviceContext
-			);
-		if (FAILED(hr))
+		if (_graphicsService.Create(hWnd) == false)
 		{
-			DebugTraceHresult(hr);
 			return false;
 		}
-
-		switch (featureLevel)
-		{
-		case D3D_FEATURE_LEVEL_11_0:	DebugTrace(_T("D3D_FEATURE_LEVEL_11_0")); break;
-		case D3D_FEATURE_LEVEL_10_0:	DebugTrace(_T("D3D_FEATURE_LEVEL_10_0")); break;
-		case D3D_FEATURE_LEVEL_10_1:	DebugTrace(_T("D3D_FEATURE_LEVEL_10_1")); break;
-		case D3D_FEATURE_LEVEL_9_3:		DebugTrace(_T("D3D_FEATURE_LEVEL_9_3")); break;
-		case D3D_FEATURE_LEVEL_9_2:		DebugTrace(_T("D3D_FEATURE_LEVEL_9_2")); break;
-		case D3D_FEATURE_LEVEL_9_1:		DebugTrace(_T("D3D_FEATURE_LEVEL_9_1")); break;
-		default:						DebugTrace(_T("Unknown")); break;
-		}
+		
+		IDXGISwapChain* pSwapChain = _graphicsService.GetSwapChain().Get();
+		ID3D11Device* pDevice = _graphicsService.GetDevice().Get();
+		ID3D11DeviceContext* pDeviceContext = _graphicsService.GetDeviceContext().Get();
+		
+		RECT rectClient;
+		SIZE sizeClient;
+		GetClientRect(hWnd, &rectClient);
+		sizeClient.cx = rectClient.right - rectClient.left;
+		sizeClient.cy = rectClient.bottom - rectClient.top;
 		
 		// バックバッファの取得とレンダーターゲットビューの作成。
 		ID3D11Texture2D* pBackBuffer;
-		hr = _pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
+		HRESULT hr = pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
 		if (FAILED(hr))
 		{
 			return false;
 		}
 		
-		hr = _pDevice->CreateRenderTargetView(pBackBuffer, NULL, &_pRenderTargetView);
+		hr = pDevice->CreateRenderTargetView(pBackBuffer, NULL, &_pRenderTargetView);
 		if (FAILED(hr))
 		{
 			return false;
 		}
 		
 		// 深度ステンシルバッファとビューの作成。
+		
 		D3D11_TEXTURE2D_DESC dd;
 		ZeroMemory(&dd, sizeof(dd));
-		dd.Width = sd.BufferDesc.Width;
-		dd.Height = sd.BufferDesc.Height;
+		dd.Width = sizeClient.cx;
+		dd.Height = sizeClient.cy;
 		dd.MipLevels = 1;
 		dd.ArraySize = 1;
 		dd.Format = DXGI_FORMAT_D32_FLOAT;
@@ -179,7 +132,7 @@ struct Application::Impl
 		dd.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 		dd.CPUAccessFlags = 0;
 		dd.MiscFlags = 0;
-		hr = _pDevice->CreateTexture2D(&dd, NULL, &_pDepthStencilBuffer);
+		hr = pDevice->CreateTexture2D(&dd, NULL, &_pDepthStencilBuffer);
 		if (FAILED(hr))
 		{
 			return false;
@@ -189,20 +142,20 @@ struct Application::Impl
 		dsvd.Format = DXGI_FORMAT_D32_FLOAT;
 		dsvd.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DMS;
 		dsvd.Texture2D.MipSlice = 0;
-		_pDevice->CreateDepthStencilView(_pDepthStencilBuffer, &dsvd, &_pDepthStencilView);
+		pDevice->CreateDepthStencilView(_pDepthStencilBuffer, &dsvd, &_pDepthStencilView);
 		
 		// レンダーターゲットを設定。
-		_pDeviceContext->OMSetRenderTargets(1, &_pRenderTargetView, _pDepthStencilView);
+		pDeviceContext->OMSetRenderTargets(1, &_pRenderTargetView, _pDepthStencilView);
 		
 		// ビューポートの設定。
 		D3D11_VIEWPORT vp;
-		vp.Width = static_cast<float>(sd.BufferDesc.Width);
-		vp.Height = static_cast<float>(sd.BufferDesc.Height);
+		vp.Width = static_cast<float>(sizeClient.cx);
+		vp.Height = static_cast<float>(sizeClient.cy);
 		vp.MinDepth = 0.0f;
 		vp.MaxDepth = 1.0f;
 		vp.TopLeftX = 0;
 		vp.TopLeftY = 0;
-		_pDeviceContext->RSSetViewports(1, &vp);
+		pDeviceContext->RSSetViewports(1, &vp);
 		
 		
 		// 頂点シェーダの作成。
@@ -227,7 +180,7 @@ struct Application::Impl
 			return false;
 		}
 			
-		hr = _pDevice->CreateVertexShader(pVertexShaderBytecode->GetBufferPointer()
+		hr = pDevice->CreateVertexShader(pVertexShaderBytecode->GetBufferPointer()
 			, pVertexShaderBytecode->GetBufferSize()
 			, NULL
 			, &_pVertexShader
@@ -237,7 +190,7 @@ struct Application::Impl
 			SafeRelease(pVertexShaderBytecode);
 			return false;
 		}
-		_pDeviceContext->VSSetShader(_pVertexShader, NULL, 0);
+		pDeviceContext->VSSetShader(_pVertexShader, NULL, 0);
 
 		// ピクセルシェーダの作成。
 		ID3D10Blob* pPixelShaderBytecode = NULL;
@@ -260,7 +213,7 @@ struct Application::Impl
 			return false;
 		}
 			
-		hr = _pDevice->CreatePixelShader(pPixelShaderBytecode->GetBufferPointer()
+		hr = pDevice->CreatePixelShader(pPixelShaderBytecode->GetBufferPointer()
 			, pPixelShaderBytecode->GetBufferSize()
 			, NULL
 			, &_pPixelShader
@@ -271,7 +224,7 @@ struct Application::Impl
 			SafeRelease(pVertexShaderBytecode);
 			return false;
 		}
-		_pDeviceContext->PSSetShader(_pPixelShader, NULL, 0);
+		pDeviceContext->PSSetShader(_pPixelShader, NULL, 0);
 
 		// 頂点バッファの生成。
 		XMFLOAT3 vertices[] =
@@ -293,7 +246,7 @@ struct Application::Impl
 		ZeroMemory(&sub, sizeof(sub));
 		sub.pSysMem = vertices;
 		
-		hr = _pDevice->CreateBuffer(&bd, &sub, &_pVertexBuffer);
+		hr = pDevice->CreateBuffer(&bd, &sub, &_pVertexBuffer);
 		if (FAILED(hr))
 		{
 			return false;
@@ -303,7 +256,7 @@ struct Application::Impl
 		D3D11_INPUT_ELEMENT_DESC layout[] = {
 			{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0/*InputSlot*/, 0/*AlignedByteOffset*/, D3D11_INPUT_PER_VERTEX_DATA, 0},
 		};
-		hr = _pDevice->CreateInputLayout(
+		hr = pDevice->CreateInputLayout(
 			layout
 			, _countof(layout)
 			, pVertexShaderBytecode->GetBufferPointer()
@@ -320,7 +273,7 @@ struct Application::Impl
 		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		bd.MiscFlags = 0;
 		bd.StructureByteStride = 0;
-		hr = _pDevice->CreateBuffer(&bd, NULL, &_pConstantBuffer);
+		hr = pDevice->CreateBuffer(&bd, NULL, &_pConstantBuffer);
 		if (FAILED(hr))
 		{
 			return false;
@@ -329,7 +282,7 @@ struct Application::Impl
 		XMMATRIX tmp = XMMatrixPerspectiveFovLH(
 //		_projection = XMMatrixPerspectiveFovLH(
 			XMConvertToRadians(30.0f)
-			, static_cast<float>(sd.BufferDesc.Width) / static_cast<float>(sd.BufferDesc.Height)
+			, static_cast<float>(sizeClient.cx) / static_cast<float>(sizeClient.cy)
 			, 1.0f	// nearZ
 			, 20.0f	// farZ
 			);
@@ -341,18 +294,21 @@ struct Application::Impl
 	
 	void Update()
 	{
+		IDXGISwapChain* pSwapChain = _graphicsService.GetSwapChain().Get();
+		ID3D11DeviceContext* pDeviceContext = _graphicsService.GetDeviceContext().Get();
+
 		float clearColor[] = { 0.0f, 0.0f, 1.0f, 0.0f };
-		_pDeviceContext->ClearRenderTargetView(_pRenderTargetView, clearColor);
-		_pDeviceContext->ClearDepthStencilView(_pDepthStencilView
+		pDeviceContext->ClearRenderTargetView(_pRenderTargetView, clearColor);
+		pDeviceContext->ClearDepthStencilView(_pDepthStencilView
 			, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 		
 		const UINT NUM_BUFFERS = 1;
 		ID3D11Buffer* vertexBuffers[] = { _pVertexBuffer };
 		UINT strides[] = { sizeof(XMFLOAT3) };
 		UINT offsets[] = { 0 };
-		_pDeviceContext->IASetVertexBuffers(0, NUM_BUFFERS, vertexBuffers, strides, offsets);
-		_pDeviceContext->IASetInputLayout(_pInputLayout);
-		_pDeviceContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		pDeviceContext->IASetVertexBuffers(0, NUM_BUFFERS, vertexBuffers, strides, offsets);
+		pDeviceContext->IASetInputLayout(_pInputLayout);
+		pDeviceContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		
 		XMVECTORF32 eye= { 0.0f, 5.0f, -5.0f, 1.0f };
 		XMVECTORF32 at = { 0.0f, 0.0f,  0.0f, 1.0f };
@@ -363,7 +319,7 @@ struct Application::Impl
 		world = XMMatrixTranspose(world);
 		
 		D3D11_MAPPED_SUBRESOURCE mapped;
-		HRESULT hr = _pDeviceContext->Map(
+		HRESULT hr = pDeviceContext->Map(
 			_pConstantBuffer
 			, 0
 			, D3D11_MAP_WRITE_DISCARD
@@ -372,16 +328,16 @@ struct Application::Impl
 		if (SUCCEEDED(hr))
 		{
 			memcpy(mapped.pData, &world, sizeof(XMMATRIX));
-			_pDeviceContext->Unmap(_pConstantBuffer, 0);
+			pDeviceContext->Unmap(_pConstantBuffer, 0);
 		}
 
 		ID3D11Buffer* constantBuffers[] = { _pConstantBuffer };
-		_pDeviceContext->VSSetConstantBuffers(0, 1, constantBuffers);
-		_pDeviceContext->PSSetConstantBuffers(0, 1, constantBuffers);
+		pDeviceContext->VSSetConstantBuffers(0, 1, constantBuffers);
+		pDeviceContext->PSSetConstantBuffers(0, 1, constantBuffers);
 		
-		_pDeviceContext->Draw(3, 0);
+		pDeviceContext->Draw(3, 0);
 		
-		_pSwapChain->Present(NULL, NULL);
+		pSwapChain->Present(NULL, NULL);
 		
 		_frameRateController.ChangeFrame();
 //		DebugTrace(_T("%.2f"), _frameRateController.GetCurrentFPS());

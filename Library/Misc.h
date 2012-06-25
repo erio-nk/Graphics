@@ -2,6 +2,7 @@
 	@file	Misc.h
 	@author	E.Nakayama
 */
+#pragma once
 
 inline bool is_null(void* p)
 {
